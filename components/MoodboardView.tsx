@@ -2,7 +2,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { fitText, makeMeasure, useDisplayFont } from '@/lib/fit';
-import { Msg, MIN_BUBBLE, bubbleSize, emojiCount, emojiScale, pastelFor } from '@/lib/room';
+import { Msg, BASE_BUBBLE, bubbleSize, emojiCount, emojiScale, pastelFor } from '@/lib/room';
 
 const GAP = 6;
 type Spot = { x: number; y: number; r: number };
@@ -51,7 +51,7 @@ export default function MoodboardView({ messages, onOpen, onLike }: Props) {
   }, []);
 
   const { items, h } = useMemo(() => {
-    const maxSize = Math.max(MIN_BUBBLE + 24, Math.min(dim.w, dim.vh) / 2); // never bigger than half the window
+    const maxSize = Math.max(BASE_BUBBLE + 24, Math.min(dim.w, dim.vh) * 0.8); // never bigger than 80 % of the screen
     const sorted = [...messages].sort((a, b) => b.likes - a.likes || a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
     const sizes = sorted.map(m => Math.min(bubbleSize(m.likes, maxSize), dim.w - 4));
     const stretch = Math.min(2.6, Math.max(1.15, dim.w / (dim.vh * 0.9)));

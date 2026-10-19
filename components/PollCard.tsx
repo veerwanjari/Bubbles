@@ -7,28 +7,37 @@ import { Poll } from '@/lib/room';
 type Props = {
   poll: Poll; canVote: boolean;
   onVote?: (pollId: string, idx: number) => Promise<string | null>;
+  onUnvote?: (pollId: string, idx: number) => Promise<string | null>;   // guest: take a vote back
   onEnd?: () => void;                // host: end the poll
   onToggleBoard?: () => void;        // host: remove an ended poll from everyone's board (or show it again)
 };
 
 const rule = (p: Poll) =>
-  !p.multi_option && !p.multi_vote ? 'One vote only'
-  : p.multi_option && !p.multi_vote ? 'One vote per option · pick as many options as you like'
-  : p.multi_option && p.multi_vote ? 'Vote as many times, on as many options, as you like'
-  : 'Pick one option · tap it as many times as you like';
+  !p.multi_option && !p.multi_vote ? 'One vote only · tap it again to remove it'
+  : p.multi_option && !p.multi_vote ? 'One vote per option · tap an option again to remove it'
+  : p.multi_option && p.multi_vote ? 'Vote as often as you like · tap − to take one back'
+  : 'Pick one option · tap it as often as you like · tap − to take one back';
 
-export default function PollCard({ poll, canVote, onVote, onEnd, onToggleBoard }: Props) {
+export default function PollCard({ poll, canVote, onVote, onUnvote, onEnd, onToggleBoard }: Props) {
   const [err, setErr] = useState('');
   const total = Object.values(poll.counts).reduce((a, b) => a + b, 0);
   const mineAt = (i: number) => poll.mine.filter(x => x === i).length;
   const used = new Set(poll.mine);
   const open = canVote && poll.is_active;
 
+  const unvote = async (i: number) => {
+    if (!onUnvote || !poll.is_active) return;
+    if (!canVote) { setErr('Voting opens once the host starts the session'); return; }
+    setErr('');
+    const e = await onUnvote(poll.id, i);
+    setErr(e ?? '');
+  };
+
   const vote = async (i: number) => {
     if (!onVote) return;
     if (!poll.is_active) { setErr('This poll has ended'); return; }
     if (!canVote) { setErr('Voting opens once the host starts the session'); return; }
-    if (!poll.multi_vote && mineAt(i) > 0) { setErr(poll.multi_option ? 'You already voted for this option' : 'You already voted'); return; }
+    if (!poll.multi_vote && mineAt(i) > 0) { await unvote(i); return; }     // tap your vote again = take it back
     if (!poll.multi_option && used.size > 0 && !used.has(i)) { setErr('This poll allows only one option'); return; }
     setErr('');
     const e = await onVote(poll.id, i);
@@ -56,7 +65,17 @@ export default function PollCard({ poll, canVote, onVote, onEnd, onToggleBoard }
               <span className="relative flex items-center justify-between gap-2 font-medium">
                 <span className="min-w-0 break-words">{o}</span>
                 <span className="flex shrink-0 items-center gap-2">
-                  {mine > 0 && <span className="rounded-full bg-white/80 px-1.5 text-[11px] font-semibold text-accent">you ×{mine}</span>}
+                  {mine > 0 && (
+                    <span className="flex items-center gap-1 rounded-full bg-white/80 px-1.5 text-[11px] font-semibold text-accent">
+                      {poll.multi_vote ? 'you ×' + mine : 'your vote ✓'}
+                      {poll.multi_vote && open && (
+                        <span role="button" tabIndex={0} aria-label="Take one of my votes back"
+                          onClick={e => { e.stopPropagation(); unvote(i); }}
+                          onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); unvote(i); } }}
+                          className="grid h-5 w-5 place-items-center rounded-full bg-accent/15 text-sm leading-none">−</span>
+                      )}
+                    </span>
+                  )}
                   <span className="tabular-nums">{c} · {pct}%</span>
                 </span>
               </span>

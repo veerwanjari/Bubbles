@@ -14,12 +14,12 @@ export type Poll = {
 type Snap = { session: Session | null; messages: Msg[]; myLikes: string[]; polls: Poll[] };
 const EMPTY: Snap = { session: null, messages: [], myLikes: [], polls: [] };
 
-export const MIN_BUBBLE = 76;
+export const BASE_BUBBLE = 52;     // a bubble with 0 likes (65 % of the old 80 px)
 export const ALLOWED_MEDIA = ['image/gif', 'image/png', 'image/jpeg', 'image/webp'];
 const EXT: Record<string, string> = { 'image/gif': 'gif', 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' };
 
 export const wordCount = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
-export const bubbleSize = (likes: number, maxSize: number) => Math.max(MIN_BUBBLE, Math.min(maxSize, 80 + 12 * likes));
+export const bubbleSize = (likes: number, maxSize: number) => Math.max(BASE_BUBBLE, Math.min(maxSize, BASE_BUBBLE + 12 * likes));
 const PASTELS = ['bg-pastel-mint', 'bg-pastel-lavender', 'bg-pastel-pink', 'bg-pastel-sky', 'bg-pastel-butter'];
 export const pastelFor = (id: string) => {
   let sum = 0;
@@ -222,6 +222,22 @@ export function useRoom(code: string, guestId: string) {
     resync();
     return null;
   };
+  const unvote = async (pollId: string, idx: number): Promise<string | null> => {
+    if (!session) return 'Not ready yet';
+    setSnap(p => ({
+      ...p,
+      polls: p.polls.map(x => {
+        if (x.id !== pollId) return x;
+        const at = x.mine.indexOf(idx);
+        if (at < 0) return x;
+        return { ...x, counts: { ...x.counts, [idx]: Math.max(0, (x.counts[idx] ?? 0) - 1) }, mine: x.mine.filter((_, k) => k !== at) };
+      }),
+    }));
+    const { error } = await supabase.rpc('remove_vote', { p_poll: pollId, p_guest: guestId, p_option: idx });
+    if (error) { refreshRef.current(true); return friendly(error.message); }
+    resync();
+    return null;
+  };
   const privateMsg = async (alias: string, body: string, about: string): Promise<string | null> => {
     if (!session) return 'Not ready yet';
     const r = await supabase.from('private_messages').insert({ session_id: session.id, guest_id: guestId, alias, body, about_message_id: about });
@@ -239,6 +255,6 @@ export function useRoom(code: string, guestId: string) {
 
   return {
     session, messages, myLikes, polls, banned, missing, live: session?.status === 'live',
-    refresh: () => refreshRef.current(true), send, like, adminLike, vote, privateMsg, upload,
+    refresh: () => refreshRef.current(true), send, like, adminLike, vote, unvote, privateMsg, upload,
   };
 }

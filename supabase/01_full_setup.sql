@@ -328,6 +328,19 @@ drop policy if exists "guest vote" on public.poll_votes;
 create policy "guest vote" on public.poll_votes for insert
   with check (public.can_vote(poll_id, session_id, guest_id, option_idx));
 
+-- ── take a vote back (the guest taps their vote again / the "−" button) ─────
+create or replace function public.remove_vote(p_poll uuid, p_guest text, p_option int) returns void
+language plpgsql security definer set search_path = public as $$
+declare sid uuid; vid uuid;
+begin
+  select session_id into sid from polls where id = p_poll and is_active;
+  if sid is null then raise exception 'This poll has ended'; end if;
+  if not public.can_post(sid, p_guest) then raise exception 'not allowed'; end if;   -- session live, guest not kicked
+  perform pg_advisory_xact_lock(hashtext(p_poll::text || p_guest));
+  select id into vid from poll_votes where poll_id = p_poll and guest_id = p_guest and option_idx = p_option limit 1;
+  if vid is not null then delete from poll_votes where id = vid; end if;
+end $$;
+
 -- ── host tools ──────────────────────────────────────────────────────────────
 drop function if exists public.admin_create_poll(uuid, text, text, jsonb);
 create or replace function public.admin_create_poll(

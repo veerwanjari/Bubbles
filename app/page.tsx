@@ -105,7 +105,7 @@ function Room({ code }: { code: string }) {
           </div>
           {boardPolls.length > 0 && (
             <section className="mx-auto w-full max-w-md space-y-3 px-3 pt-2">
-              {boardPolls.map(p => <PollCard key={p.id} poll={p} canVote={p.is_active && room.live} onVote={room.vote} />)}
+              {boardPolls.map(p => <PollCard key={p.id} poll={p} canVote={p.is_active && room.live} onVote={room.vote} onUnvote={room.unvote} />)}
             </section>
           )}
         </div>
