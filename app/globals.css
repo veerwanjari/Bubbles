@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: 29 27 46; --canvas: 242 240 248; --accent: 155 27 255;
+  --pastel-mint: 191 235 217; --pastel-lavender: 217 200 242; --pastel-pink: 246 191 196;
+  --pastel-sky: 188 216 242; --pastel-butter: 247 227 163;
+  --bg1: #E4F6EE; --bg2: #E6DDF7; --bg3: #DDEBF8;
+  color-scheme: light;
+}
+/* dark mode: the same pastels, a little darker */
+.dark {
+  --ink: 238 236 250; --canvas: 18 16 30; --accent: 178 102 255;
+  --pastel-mint: 112 186 156; --pastel-lavender: 156 132 212; --pastel-pink: 222 132 144;
+  --pastel-sky: 110 158 216; --pastel-butter: 220 188 94;
+  --bg1: #1b2b2c; --bg2: #271f3d; --bg3: #19263f;
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-canvas text-ink font-sans antialiased;
+  background-image:
+    radial-gradient(60% 50% at 15% 10%, var(--bg1) 0, transparent 70%),
+    radial-gradient(50% 50% at 90% 20%, var(--bg2) 0, transparent 70%),
+    radial-gradient(60% 60% at 50% 100%, var(--bg3) 0, transparent 70%);
+  background-attachment: fixed;
+}
+
+@layer components {
+  .glass { @apply bg-white/40 backdrop-blur-xl border border-white/30 shadow-glass; }
+  .glass-strong { @apply bg-white/60 backdrop-blur-xl border border-white/50 shadow-glass; }
+  .editable:empty::before { content: attr(data-placeholder); color: rgb(var(--ink) / 0.4); pointer-events: none; }
+  .no-select { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+}
+
+/* dark-mode surfaces (the light theme uses white glass; here it becomes smoky glass) */
+.dark .glass { background-color: rgb(255 255 255 / 0.07); border-color: rgb(255 255 255 / 0.12); box-shadow: 0 8px 32px rgb(0 0 0 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.1); }
+.dark .glass-strong { background-color: rgb(255 255 255 / 0.11); border-color: rgb(255 255 255 / 0.16); box-shadow: 0 8px 32px rgb(0 0 0 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.12); }
+.dark .bg-white\/30 { background-color: rgb(8 6 20 / 0.55); }
+.dark .bg-white\/40, .dark .bg-white\/50, .dark .bg-white\/60 { background-color: rgb(255 255 255 / 0.09); }
+.dark .bg-white\/70, .dark .bg-white\/80 { background-color: rgb(255 255 255 / 0.15); }
+.dark .bg-white:not(.keep-white) { background-color: rgb(255 255 255 / 0.18); }
+.dark .border-white\/60 { border-color: rgb(255 255 255 / 0.14); }
+.dark .bg-red-100 { background-color: rgb(127 29 29 / 0.45); }
+.dark .text-red-700, .dark .text-red-600, .dark .text-red-500 { color: #fca5a5; }
+.dark .bg-amber-100 { background-color: rgb(120 74 10 / 0.5); }
+.dark .text-amber-800 { color: #fcd34d; }
